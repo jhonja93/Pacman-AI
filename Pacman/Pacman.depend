@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1433995980 source:/home/is1394/Git/Lenguajes/Pacman/C++/Pacman/main.cpp
+	<allegro.h>
+	<iostream>
+	<cstdlib>
+	<ctime>
+
+1434009455 source:/home/is1394/Git/Lenguajes/Pacman/C++/01codigofuente/Pacman/main.cpp
+	<allegro.h>
+	<iostream>
+	<cstdlib>
+	<ctime>
+

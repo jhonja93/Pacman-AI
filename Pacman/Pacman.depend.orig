@@ -1,0 +1,8 @@
+# depslib dependency file v1.0
+<<<<<<< HEAD
+1432823039 source:/home/is1394/Git/Lenguajes/Pacman/C++/Pacman/main.cpp
+=======
+1432789072 source:/home/is1394/Git/Lenguajes/Pacman/C++/Pacman/main.cpp
+>>>>>>> respaldo
+	<allegro.h>
+
