@@ -1,4 +1,4 @@
-//#include "mapeartabla.cpp"
+#include "mapeartabla.cpp"
 #include <allegro.h>
 #include <stdio.h>
 #include <iostream>
@@ -37,14 +37,15 @@ float tiempoSuper;
 vector <int> vectorPuntos;
 int pos_xP, pos_yP;
 
-struct Point
+
+struct verticePacman
  {
-    int x;
-    int y;
+    int inicial;
+    int destino;
+    int tamano;
  }; 
-    
-int track_pos(int x, int y);
-Point track_inverse(int n);
+
+int mayor(int a, int b, int c);
 //dijkstra( int inicial );
 char table[ROWS][COLS] = { //board representation
     "<------------><------------>",
@@ -101,7 +102,6 @@ struct cmp {
         return a.second > b.second;
     }
 };
-
 
 vector< Node > ady[ MAXIMO ]; //lista de adyacencia
 int distancia[ MAXIMO ];      //distancia[ u ] distancia de vértice inicial a vértice con ID = u
@@ -384,8 +384,6 @@ void Pacman::movePacman(){
                     pos_actual == 'x') dir = 3;
             }
         }
-
-
     if (dir == 0) {
         pos_actual = table[obty(pos_y, 16)][obtx(pos_x-1, 16)];
         if (pos_actual == 'o' or pos_actual == 'O' or pos_actual == ' ' or pos_actual == 'F' or pos_actual == 'x' )
@@ -416,7 +414,6 @@ void Pacman::movePacman(){
             else pos_yP = pos_y += 2;
         else dir = 4;
     }
-
 }
 
 int Pacman::colisionEnemigo(int b2x, int b2y, int b2w, int b2h, bool super){
@@ -668,7 +665,8 @@ public:
         void drawGhostScared();
         void deadPacman(Pacman p); //ghosts kills pacman
         void moveGhost();
-        void moveGhostMiniMax(int pos_x, int pos_y);
+        void moveGhost_mirror();
+        void moveGhostMinMax(int pos_x, int pos_y);
         int getPosXGhost();
         int getPosYGhost();
 };
@@ -723,43 +721,464 @@ void Fantasma::deadPacman(Pacman p){ //verificar funcion muchos a uno
     }
 }
 
-void Fantasma::moveGhostMiniMax(int pos_x, int pos_y){
+void Fantasma::moveGhost_mirror(){
+    /*
 
-    int coord_Ghost,coord_Pacman;
-    //gpos_now = table[gpos_y/16][gpos_x/16];
-    //gpos_now_pacman = table[pos_y/16][pos_x/16];
-    coord_Ghost = track_pos((gpos_y/16),(gpos_x/16));
-    coord_Pacman = track_pos((pos_y/16), (pos_x/16));
-    dijkstra( coord_Ghost, coord_Pacman );
-    printf("%d %d \n", coord_Ghost, coord_Pacman);
-    
+    if (gdir == 0){
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+            gpos_next = table[gpos_y/16][(gpos_x-16)/16];
+            gpos_next_u = table[(gpos_y-16)/16][gpos_x/16];
+            gpos_next_d = table[(gpos_y+16)/16][gpos_x/16];
+            gpos_now = table[gpos_y/16][gpos_x/16];
 
-    int tamLista = vectorPuntos.size();
-    int coord_next = vectorPuntos[1];
-    vectorPuntos.clear();
+            if(gpos_next== 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x') {
 
-    Point punto_next;
-    punto_next = track_inverse(coord_next);
-    printf("COORDENADAS (%d,%d) :       %d\n",punto_next.x, punto_next.y ,coord_next );
-    printf("GHOST %d %d   \n", (gpos_y/16), (gpos_x/16));
-    printf("PACMAN %d %d   \n", (pos_y/16), (pos_x/16));
+                if (gpos_now == 'x' ){
+                     //0,1,2 ==> 0,2,3
 
-    
-    if ((gpos_y/16) == punto_next.x)
-    {
-        if (gpos_x == 0) gpos_x = 27*16;
-        if (gpos_x == 27*16) gpos_x = 0;
+                    if ((getPosYPacman < getPosYGhost) && (gpos_next== 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x')) {
+                        gpos_x -=2;
+                        gdir = 0;
+                    }
+                    else if ((getPosYPacman > getPosYGhost) && (gpos_next== 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x'))
+                        gpos_x +=2;
+                        gdir = 0;
+                    }
+                    if ((getPosXPacman < getPosXGhost) && (gpos_next== 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x')) {
+                        gpos_y -=2;
+                        gdir = 0;
+                    }
+                    else if ((getPosXPacman > getPosXGhost) && (gpos_next== 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x'))
+                        gpos_x +=2;
+                        gdir = 0;
+                    }
 
-        if ((gpos_x/16) < punto_next.y) { gpos_x +=2; }
-        else  if((gpos_x/16) > punto_next.y) { gpos_x -=2;}
+            }
+            else if (gpos_x == 0) gpos_x = 27*16;//atajo
+            else {
+                srand((int)time(0));
+                gdir = (rand()%2) + 2; //  2,3
+
+                if (gdir == 2)
+                    if (gpos_next_u == '-' or gpos_next_u == 'I' or gpos_next_u == '<' or gpos_next_u == '>' or gpos_next_u == 'C' or gpos_next_u == 'V') {
+                        gdir=3;
+                        gpos_y +=2;
+                    }else {
+                        gdir =2;
+                        gpos_y -=2;
+                    }
+                else if (gdir == 3)
+                    if (gpos_next_d == '-' or gpos_next_d == 'I' or gpos_next_d == '<' or gpos_next_d == '>' or gpos_next_d == 'C' or gpos_next_d == 'V') {
+                        gdir=2;
+                        gpos_y -=2;
+                    }else{
+                        gdir =3;
+                        gpos_y +=2;
+                    }
+            }
+
+        }else gpos_x -=2;
+    }
+    if (gdir == 1){
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+            gpos_next = table[gpos_y/16][(gpos_x+16)/16];
+
+            gpos_next_u = table[(gpos_y-16)/16][gpos_x/16];
+            gpos_next_d = table[(gpos_y+16)/16][gpos_x/16];
+            gpos_now = table[gpos_y/16][gpos_x/16];
+
+            if(gpos_next == 'o' or gpos_next == ' ' or gpos_next == '_' or gpos_next == 'O' or gpos_next == 'F' or gpos_next== 'x'){
+
+                if (gpos_now == 'x'){
+                    srand((int)time(0));
+                    gdir = (rand()%3) +1; //1,2,3
+                    if (gdir == 1) gpos_x +=2;
+                    else if (gdir == 2){
+                        if (gpos_next_u == '-' or gpos_next_u == 'I' or gpos_next_u == '<' or gpos_next_u == '>' or gpos_next_u == 'C' or gpos_next_u == 'V') {
+                            srand((int)time(0));
+                            int val = rand()%2;     //0,1 ==> 1,3
+
+                            if (val == 0){
+                                gpos_x +=2;
+                                gdir =1;
+                            }
+                            else if (val == 1) {
+                                if (gpos_next_d == '-' or gpos_next_d == 'I' or gpos_next_d == '<' or gpos_next_d == '>' or gpos_next_d == 'C' or gpos_next_d == 'V'){
+                                  gpos_x +=2;
+                                  gdir = 1;
+                                }
+                                else {
+                                    gpos_y -=2;
+                                    gdir = 3;
+                                }
+                            }
+                        }else gpos_y +=2;
+                    }else if (gdir == 3)  gpos_y -=2;
+                }else  gpos_x +=2;
+            }
+            else if (gpos_x == 27*16) gpos_x = 0;//atajo
+            else {
+                srand((int)time(0));
+                gdir = (rand()%2) + 2; //  2,3
+
+                if (gdir == 2)
+                    if (gpos_next_u == '-' or gpos_next_u == 'I' or gpos_next_u == '<' or gpos_next_u == '>' or gpos_next_u == 'C' or gpos_next_u == 'V') {
+                        gdir=3;
+                        gpos_y +=2;
+                    }else {
+                        gdir =2;
+                        gpos_y -=2;
+                    }
+                else if (gdir == 3)
+                    if (gpos_next_d == '-' or gpos_next_d == 'I' or gpos_next_d == '<' or gpos_next_d == '>' or gpos_next_d == 'C' or gpos_next_d == 'V') {
+                        gdir=2;
+                        gpos_y -=2;
+                    }else{
+                        gdir =3;
+                        gpos_y +=2;
+                    }
+            }
+        }else gpos_x +=2;
+    }
+    if(gdir == 2) {
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+            gpos_next = table[(gpos_y-16)/16][gpos_x/16];
+
+            gpos_next_l = table[gpos_y/16][(gpos_x-16)/16];
+            gpos_next_r = table[gpos_y/16][(gpos_x+16)/16];
+            gpos_now = table[gpos_y/16][gpos_x/16];
+
+            if(gpos_next == 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x') {
+
+                if (gpos_now == 'x'){
+                    srand((int)time(0));
+                    gdir = rand()%3; //0,1,2
+
+                    if (gdir == 0){
+                        if (gpos_next_l == '-' or gpos_next_l == 'I' or gpos_next_l == '<' or gpos_next_l == '>' or gpos_next_l == 'C' or gpos_next_l == 'V') {
+                            srand((int)time(0));
+                            gdir = (rand()%2)+1;//1,2
+                            if (gdir == 1)
+                                if (gpos_next_r == '-' or gpos_next_r == 'I' or gpos_next_r == '<' or gpos_next_r == '>' or gpos_next_r == 'C' or gpos_next_r == 'V') gpos_y -=2;
+                                else gpos_x +=2;
+                            else if (gdir == 2) gpos_y -=2;
+                        }else gpos_x -=2;
+                    }
+                    else if (gdir == 1) {
+                        if (gpos_next_r == '-' or gpos_next_r == 'I' or gpos_next_r == '<' or gpos_next_r == '>' or gpos_next_r == 'C' or gpos_next_r == 'V') {
+
+                            srand((int)time(0));
+                            int val = rand()%2;     //0,1 ==> 0,2
+
+                            if (val == 0){
+                                if (gpos_next_l == '-' or gpos_next_l == 'I' or gpos_next_l == '<' or gpos_next_l == '>' or gpos_next_l == 'C' or gpos_next_l == 'V'){
+                                    gpos_y -=2;
+                                    gdir = 2;
+                                }
+                                else {
+                                    gpos_x -=2;
+                                    gdir = 0;
+                                }
+                            }
+                            else if (val == 1){
+                                gpos_y -=2;
+                                gdir =2;
+                            }
+                        }else gpos_x +=2;
+                    }
+                    else if (gdir == 2)  gpos_y -=2;
+                }else gpos_y -=2;
+            }
+            else {
+                srand((int)time(0));
+                gdir = rand()%2; //0,1
+
+                 if (gdir == 0)
+                    if (gpos_next_l == '-' or gpos_next_l == 'I' or gpos_next_l == '<' or gpos_next_l == '>' or gpos_next_l == 'C' or gpos_next_l == 'V') {
+                        gdir=1;
+                        gpos_x +=2;
+                    }else {
+                        gdir =0;
+                        gpos_x -=2;
+                    }
+                else if (gdir == 1)
+                    if (gpos_next_r == '-' or gpos_next_r == 'I' or gpos_next_r == '<' or gpos_next_r == '>' or gpos_next_r == 'C' or gpos_next_r == 'V') {
+                        gdir=0;
+                        gpos_x -=2;
+                    }else{
+                        gdir =1;
+                        gpos_x +=2;
+                    }
+            }
+        }else gpos_y -=2;
     }
 
-    if ((gpos_x/16) == punto_next.y)
-    {
-        if ((gpos_y/16) < punto_next.x) { gpos_y +=2; }
-        else  if ((gpos_y/16) > punto_next.x) { gpos_y -=2;}
-    }
+    if(gdir == 3) {
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+            gpos_next = table[(gpos_y+16)/16][gpos_x/16];
+
+            gpos_now = table[gpos_y/16][gpos_x/16];
+            gpos_next_r = table[gpos_y/16][(gpos_x+16)/16];
+            gpos_next_l = table[gpos_y/16][(gpos_x-16)/16];
+
+            if(gpos_next == 'o' or gpos_next == ' ' or gpos_next == 'O' or gpos_next == '_' or gpos_next == 'F' or gpos_next== 'x'){
+
+                if (gpos_now == 'x'){
+                    srand((int)time(0));
+                    int val = rand()%3; //0,1,2 ==> 0,1,3
+
+                    if (val == 0){
+                        if (gpos_next_l == '-' or gpos_next_l == 'I' or gpos_next_l == '<' or gpos_next_l == '>' or gpos_next_l == 'C' or gpos_next_l == 'V') {
+                            srand((int)time(0));
+                            val = rand()%2; //0,1 ==> 1,3
+
+                            if (val == 0)
+                                if (gpos_next_r == '-' or gpos_next_r == 'I' or gpos_next_r == '<' or gpos_next_r == '>' or gpos_next_r == 'C' or gpos_next_r == 'V'){
+                                    gpos_y +=2;
+                                    gdir = 3;
+                                }
+                                else {
+                                    gpos_x +=2;
+                                    gdir = 1;
+                                }
+                            else if (val == 1) {
+                                gpos_y +=2;
+                                gdir = 3;
+                            }
+                        }else {
+                            gpos_x -=2;
+                            gdir = 0;
+                        }
+                    }
+                    else if (val == 1) {
+                        if (gpos_next_r == '-' or gpos_next_r == 'I' or gpos_next_r == '<' or gpos_next_r == '>' or gpos_next_r == 'C' or gpos_next_r == 'V') {
+
+                            srand((int)time(0));
+                            val = rand()%2; //0,1 ==> 0,3
+
+                            if (val == 0)
+                                if (gpos_next_l == '-' or gpos_next_l == 'I' or gpos_next_l == '<' or gpos_next_l == '>' or gpos_next_l == 'C' or gpos_next_l == 'V') {
+                                    gpos_y +=2;
+                                    gdir = 3;
+                                }
+                                else {
+                                    gpos_x -=2;
+                                    gdir = 0;
+                                }
+                            else if (val == 1) {
+                                gpos_y +=2;
+                                gdir = 3;
+                            }
+                        }else{
+                            gpos_x +=2;
+                            gdir =1;
+                        }
+                    }
+                    else if (val == 2) {
+                        gpos_y +=2;
+                        gdir = 3;
+                    }
+                }else gpos_y +=2;
+
+            }
+            else{
+                srand((int)time(0));
+                gdir = rand()%2; //0,1
+
+                if (gdir == 0)
+                    if (gpos_next_l == '-' or gpos_next_l == 'I' or gpos_next_l == '<' or gpos_next_l == '>' or gpos_next_l == 'C' or gpos_next_l == 'V') {
+                        gdir=1;
+                        gpos_x +=2;
+                    }else {
+                        gdir =0;
+                        gpos_x -=2;
+                    }
+                else if (gdir == 1)
+                    if (gpos_next_r == '-' or gpos_next_r == 'I' or gpos_next_r == '<' or gpos_next_r == '>' or gpos_next_r == 'C' or gpos_next_r == 'V') {
+                        gdir=0;
+                        gpos_x -=2;
+                    }else{
+                        gdir =1;
+                        gpos_x +=2;
+                    }
+            }
+        }else gpos_y +=2;
+    }*/
 }
+
+void Fantasma::moveGhostMinMax(int pos_x, int pos_y){
+
+
+    int coord_next, tamGraphNow = 0, tamGraphNext = 0;
+    int coord_Ghost_Now, coord_Pacman_Now, coord_Ghost_Next;
+    int coord_Ghost_Next_up, coord_Ghost_Next_down, coord_Ghost_Next_left, coord_Ghost_Next_right;
+    int tamGraphNext_up, tamGraphNext_down, tamGraphNext_left, tamGraphNext_right;
+
+    coord_Ghost_Now     = track_pos((gpos_y/16),(gpos_x/16));       //Posicion actual del Fantasma
+    coord_Pacman_Now    = track_pos((pos_y/16), (pos_x/16));       //Posicion actual del Pacman
+
+    dijkstra( coord_Ghost_Now, coord_Pacman_Now );
+    tamGraphNow = vectorPuntos.size();
+    vectorPuntos.clear();
+    int n;
+
+    verticePacman vp;
+
+    if (gdir == 0)
+    {
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+            
+            coord_Ghost_Next_up     = track_pos(((gpos_y-16)/16), ((gpos_x)/16));     // El siguiente camino es arriba
+            coord_Ghost_Next_down   = track_pos(((gpos_y+16)/16), ((gpos_x)/16));   // El siguiente camino es abajo
+            coord_Ghost_Next_left  = track_pos((gpos_y/16), ((gpos_x-16)/16));    // El siguiente camino es derecha
+
+            dijkstra( coord_Ghost_Next_up, coord_Pacman_Now );
+            tamGraphNext_up = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_down, coord_Pacman_Now );
+            tamGraphNext_down = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_left, coord_Pacman_Now );
+            tamGraphNext_left = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            n = mayor(tamGraphNext_up, tamGraphNext_down, tamGraphNext_left);
+
+            if (n == tamGraphNext_up)
+            {
+                gpos_y -=2;         // Avanzamos Hacia la arriba
+                gdir = 2;           // Direccion derecha
+            }else if (n == tamGraphNext_down){
+                gpos_y +=2;         // Avanzamos Hacia la abajo
+                gdir = 3;
+            }else if (n == tamGraphNext_left){
+                gpos_x -=2;         // Avanzamos Hacia la derecha
+                gdir = 0;
+            }
+
+        }else gpos_x -=2; 
+    }else if (gdir == 1)
+    {
+        /* code */
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+
+            coord_Ghost_Next_up     = track_pos(((gpos_y-16)/16), ((gpos_x)/16));     // El siguiente camino es arriba
+            coord_Ghost_Next_down   = track_pos(((gpos_y+16)/16), ((gpos_x)/16));   // El siguiente camino es abajo
+            coord_Ghost_Next_right  = track_pos((gpos_y/16), ((gpos_x+16)/16));    // El siguiente camino es derecha
+
+            dijkstra( coord_Ghost_Next_up, coord_Pacman_Now );
+            tamGraphNext_up = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_down, coord_Pacman_Now );
+            tamGraphNext_down = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_right, coord_Pacman_Now );
+            tamGraphNext_right = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            n = mayor(tamGraphNext_up, tamGraphNext_down, tamGraphNext_right);
+
+            if (n == tamGraphNext_up)
+            {
+                gpos_y -=2;         // Avanzamos Hacia la arriba
+                gdir = 2;           // Direccion derecha
+            }else if (n == tamGraphNext_down){
+                gpos_y +=2;         // Avanzamos Hacia la abajo
+                gdir = 3;
+            }else if (n == tamGraphNext_right){
+                gpos_x +=2;         // Avanzamos Hacia la derecha
+                gdir = 1;
+            }
+
+        }else gpos_x +=2; 
+    }else if (gdir == 2)
+    {
+
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+
+            coord_Ghost_Next_up= track_pos(((gpos_y-16)/16), ((gpos_x)/16));     // El siguiente camino es abajo
+            coord_Ghost_Next_right = track_pos(((gpos_y)/16), ((gpos_x+16)/16));   // El siguiente camino es derecha
+            coord_Ghost_Next_left = track_pos((gpos_y/16), ((gpos_x-16)/16));     // El siguiente camino es izquierda
+
+            dijkstra( coord_Ghost_Next_up, coord_Pacman_Now );
+            tamGraphNext_up = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_left, coord_Pacman_Now );
+            tamGraphNext_left = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_right, coord_Pacman_Now );
+            tamGraphNext_right = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            n = mayor(tamGraphNext_up, tamGraphNext_left, tamGraphNext_right);
+
+            if (n == tamGraphNext_up)
+            {
+                gpos_y -=2;         // Avanzamos Hacia la arriba
+                gdir = 2;           // Direccion derecha
+            }else if (n == tamGraphNext_left){
+                gpos_x -=2;         // Avanzamos Hacia la izquierda
+                gdir = 0;
+            }else if (n == tamGraphNext_right){
+                gpos_x +=2;         // Avanzamos Hacia la derecha
+                gdir = 1;
+            }
+
+        }else gpos_y -=2; 
+    }else if (gdir == 3)
+    {
+        if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
+
+            coord_Ghost_Next_down= track_pos(((gpos_y+16)/16), ((gpos_x)/16));     // El siguiente camino es abajo
+            coord_Ghost_Next_right = track_pos(((gpos_y)/16), ((gpos_x+16)/16));   // El siguiente camino es derecha
+            coord_Ghost_Next_left = track_pos((gpos_y/16), ((gpos_x-16)/16));     // El siguiente camino es izquierda
+
+            
+            dijkstra( coord_Ghost_Next_down, coord_Pacman_Now );
+            tamGraphNext_down = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_left, coord_Pacman_Now );
+            tamGraphNext_left = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            dijkstra( coord_Ghost_Next_right, coord_Pacman_Now );
+            tamGraphNext_right = vectorPuntos.size();
+            vectorPuntos.clear();
+
+            n = mayor(tamGraphNext_down, tamGraphNext_left, tamGraphNext_right);
+
+            if (n == tamGraphNext_down)
+            {
+                gpos_y +=2;         // Avanzamos Hacia la arriba
+                gdir = 3;           // Direccion derecha
+            }else if (n == tamGraphNext_left){
+                gpos_x -=2;         // Avanzamos Hacia la izquierda
+                gdir = 0;
+            }else if (n == tamGraphNext_right){
+                gpos_x +=2;         // Avanzamos Hacia la derecha
+                gdir = 1;
+            }
+
+        }else gpos_y +=2; 
+    }
+
+}
+int mayor(int a, int b, int c){
+    if(a<b)
+        if(a<c) return a;
+        else return c;
+    else 
+        if(b<c) return b;
+        else return c;
+}
+
 
 void Fantasma::moveGhost(){
 
@@ -1314,9 +1733,9 @@ int main(){
         xpos = pac.getPosXPacman();
         ypos = pac.getPosYPacman();
 
-        f1.moveGhostMiniMax(pos_xP , pos_yP );
-        f2.moveGhost();
-        f3.moveGhost();
+        f2.moveGhostMinMax(pos_xP , pos_yP );
+        f1.moveGhost();
+        //f3.moveGhost_mirror();
         f4.moveGhost();
         rest(5);
 
@@ -1379,677 +1798,5 @@ int main(){
     return 0;
 }
 
-
-int track_pos(int x, int y){
-    if(x==1){
-        if(y==1) return 1;
-        else if(y==2) return 2;
-        else if(y==3) return 3;
-        else if(y==4) return 4;
-        else if(y==5) return 5;
-        else if(y==6) return 6;
-        else if(y==7) return 7;
-        else if(y==8) return 8;
-        else if(y==9) return 9;
-        else if(y==10) return 10;
-        else if(y==11) return 11;
-        else if(y==12) return 12;
-        else if(y==15) return 13;
-        else if(y==16) return 14;
-        else if(y==17) return 15;
-        else if(y==18) return 16;
-        else if(y==19) return 17;
-        else if(y==20) return 18;
-        else if(y==21) return 19;
-        else if(y==22) return 20;
-        else if(y==23) return 21;
-        else if(y==24) return 22;
-        else if(y==25) return 23;
-        else if(y==26) return 24;
-    }
-    else if(x==2){
-        if(y==1) return 25;
-        else if(y==6) return 26;
-        else if(y==12) return 27;
-        else if(y==15) return 28;
-        else if(y==21) return 29;
-        else if(y==26) return 30;
-    }
-    else if(x==3){
-        if(y==1) return 31;
-        else if(y==6) return 32;
-        else if(y==12) return 33;
-        else if(y==15) return 34;
-        else if(y==21) return 35;
-        else if(y==26) return 36;
-    }
-    else if(x==4){
-        if(y==1) return 37;
-        else if(y==6) return 38;
-        else if(y==12) return 39;
-        else if(y==15) return 40;
-        else if(y==21) return 41;
-        else if(y==26) return 42;
-    }
-    else if(x==5){
-        if(y==1) return 43;
-        else if(y==2) return 44;
-        else if(y==3) return 45;
-        else if(y==4) return 46;
-        else if(y==5) return 47;
-        else if(y==6) return 48;
-        else if(y==7) return 49;
-        else if(y==8) return 50;
-        else if(y==9) return 51;
-        else if(y==10) return 52;
-        else if(y==11) return 53;
-        else if(y==12) return 54;
-        else if(y==13) return 55;
-        else if(y==14) return 56;
-        else if(y==15) return 57;
-        else if(y==16) return 58;
-        else if(y==17) return 59;
-        else if(y==18) return 60;
-        else if(y==19) return 61;
-        else if(y==20) return 62;
-        else if(y==21) return 63;
-        else if(y==22) return 64;
-        else if(y==23) return 65;
-        else if(y==24) return 66;
-        else if(y==25) return 67;
-        else if(y==26) return 68;
-    }
-    else if(x==6){
-        if(y==1) return 69;
-        else if(y==6) return 70;
-        else if(y==9) return 71;
-        else if(y==18) return 72;
-        else if(y==21) return 73;
-        else if(y==26) return 74;
-    }
-    else if(x==7){
-        if(y==1) return 75;
-        else if(y==6) return 76;
-        else if(y==9) return 77;
-        else if(y==18) return 78;
-        else if(y==21) return 79;
-        else if(y==26) return 80;
-    }
-    else if(x==8){
-        if(y==1) return 81;
-        else if(y==2) return 82;
-        else if(y==3) return 83;
-        else if(y==4) return 84;
-        else if(y==5) return 85;
-        else if(y==6) return 86;
-        else if(y==9) return 87;
-        else if(y==10) return 88;
-        else if(y==11) return 89;
-        else if(y==12) return 90;
-        else if(y==15) return 91;
-        else if(y==16) return 92;
-        else if(y==17) return 93;
-        else if(y==18) return 94;
-        else if(y==21) return 95;
-        else if(y==22) return 96;
-        else if(y==23) return 97;
-        else if(y==24) return 98;
-        else if(y==25) return 99;
-        else if(y==26) return 100;
-    }
-    else if(x==9){
-        if(y==6) return 101;
-        else if(y==12) return 102;
-        else if(y==15) return 103;
-        else if(y==21) return 104;
-    }
-    else if(x==10){
-        if(y==6) return 105;
-        else if(y==12) return 106;
-        else if(y==15) return 107;
-        else if(y==21) return 108;
-    }
-    else if(x==11){
-        if(y==6) return 109;
-        else if(y==9) return 110;
-        else if(y==10) return 111;
-        else if(y==11) return 112;
-        else if(y==12) return 113;
-        else if(y==13) return 114;
-        else if(y==14) return 115;
-        else if(y==15) return 116;
-        else if(y==16) return 117;
-        else if(y==17) return 118;
-        else if(y==18) return 119;
-        else if(y==21) return 120;
-    }
-    else if(x==12){
-        if(y==6) return 121;
-        else if(y==9) return 122;
-        else if(y==18) return 123;
-        else if(y==21) return 124;
-    }
-    else if(x==13){
-        if(y==6) return 125;
-        else if(y==9) return 126;
-        else if(y==18) return 127;
-        else if(y==21) return 128;
-    }
-    else if(x==14){
-        if(y==0) return 129;
-        else if(y==1) return 130;
-        else if(y==2) return 131;
-        else if(y==3) return 132;
-        else if(y==4) return 133;
-        else if(y==5) return 134;
-        else if(y==6) return 135;
-        else if(y==7) return 136;
-        else if(y==8) return 137;
-        else if(y==9) return 138;
-        else if(y==18) return 139;
-        else if(y==19) return 140;
-        else if(y==20) return 141;
-        else if(y==21) return 142;
-        else if(y==22) return 143;
-        else if(y==23) return 144;
-        else if(y==24) return 145;
-        else if(y==25) return 146;
-        else if(y==26) return 147;
-        else if(y==27) return 148;
-    }
-    else if(x==15){
-        if(y==6) return 149;
-        else if(y==9) return 150;
-        else if(y==18) return 151;
-        else if(y==21) return 152;
-    }
-    else if(x==16){
-        if(y==6) return 153;
-        else if(y==9) return 154;
-        else if(y==18) return 155;
-        else if(y==21) return 156;
-    }
-    else if(x==17){
-        if(y==6) return 157;
-        else if(y==9) return 158;
-        else if(y==10) return 159;
-        else if(y==11) return 160;
-        else if(y==12) return 161;
-        else if(y==13) return 162;
-        else if(y==14) return 163;
-        else if(y==15) return 164;
-        else if(y==16) return 165;
-        else if(y==17) return 166;
-        else if(y==18) return 167;
-        else if(y==21) return 168;
-    }
-    else if(x==18){
-        if(y==6) return 169;
-        else if(y==9) return 170;
-        else if(y==18) return 171;
-        else if(y==21) return 172;
-    }
-    else if(x==19){
-        if(y==6) return 173;
-        else if(y==9) return 174;
-        else if(y==18) return 175;
-        else if(y==21) return 176;    
-    }
-    else if(x==20){
-        if(y==1) return 177;
-        else if(y==2) return 178;
-        else if(y==3) return 179;
-        else if(y==4) return 180;
-        else if(y==5) return 181;
-        else if(y==6) return 182;
-        else if(y==7) return 183;
-        else if(y==8) return 184;
-        else if(y==9) return 185;
-        else if(y==10) return 186;
-        else if(y==11) return 187;
-        else if(y==12) return 188;
-        else if(y==15) return 189;
-        else if(y==16) return 190;
-        else if(y==17) return 191;
-        else if(y==18) return 192;
-        else if(y==19) return 193;
-        else if(y==20) return 194;
-        else if(y==21) return 195;
-        else if(y==22) return 196;
-        else if(y==23) return 197;
-        else if(y==24) return 198;
-        else if(y==25) return 199;
-        else if(y==26) return 200;
-    }
-    else if(x==21){
-        if(y==1) return 201;
-        else if(y==6) return 202;
-        else if(y==12) return 203;
-        else if(y==15) return 204;
-        else if(y==21) return 205;
-        else if(y==26) return 206;
-    }
-    else if(x==22){
-        if(y==1) return 207;
-        else if(y==6) return 208;
-        else if(y==12) return 209;
-        else if(y==15) return 210;
-        else if(y==21) return 211;
-        else if(y==26) return 212;
-    }
-    else if(x==23){
-        if(y==1) return 213;
-        else if(y==2) return 214;
-        else if(y==3) return 215;
-        else if(y==6) return 216;
-        else if(y==7) return 217;
-        else if(y==8) return 218;
-        else if(y==9) return 219;
-        else if(y==10) return 220;
-        else if(y==11) return 221;
-        else if(y==12) return 222;
-        else if(y==13) return 223;
-        else if(y==14) return 224;
-        else if(y==15) return 225;
-        else if(y==16) return 226;
-        else if(y==17) return 227;
-        else if(y==18) return 228;
-        else if(y==19) return 229;
-        else if(y==20) return 230;
-        else if(y==21)  return 231;
-        else if(y==24) return 232;
-        else if(y==25) return 233;
-        else if(y==26) return 234;
-    }
-    else if(x==24){
-        if(y==3) return 235;
-        else if(y==6) return 236;
-        else if(y==9) return 237;
-        else if(y==18) return 238;
-        else if(y==21) return 239;
-        else if(y==24) return 240;
-    }
-    else if(x==25){
-        if(y==3) return 241;
-        else if(y==6) return 242;
-        else if(y==9) return 243;
-        else if(y==18) return 244;
-        else if(y==21) return 245;
-        else if(y==24) return 246;
-    }
-    else if(x==26){
-        if(y==1) return 247;
-        else if(y==2) return 248;
-        else if(y==3) return 249;
-        else if(y==4) return 250;
-        else if(y==5) return 251;
-        else if(y==6) return 252;
-        else if(y==9) return 253;
-        else if(y==10) return 254;
-        else if(y==11) return 255;
-        else if(y==12)  return 256;
-        else if(y==15) return 257;
-        else if(y==16) return 258;
-        else if(y==17) return 259;
-        else if(y==18) return 260;
-        else if(y==21) return 261;
-        else if(y==22) return 262;
-        else if(y==23) return 263;
-        else if(y==24) return 264;
-        else if(y==25) return 265;
-        else if(y==26) return 266;
-    }
-    else if(x==27){
-        if(y==1) return 267;
-        else if(y==12) return 268;
-        else if(y==15) return 269;
-        else if(y==26) return 270;
-    }
-    else if(x==28){
-        if(y==1) return 271;
-        else if(y==12) return 272;
-        else if(y==15) return 273;
-        else if(y==26) return 274;
-    }
-    else if(x==29){
-        if(y==1) return 275;
-        else if(y==2) return 276;
-        else if(y==3) return 277;
-        else if(y==4) return 278;
-        else if(y==5) return 279;
-        else if(y==6) return 280;
-        else if(y==7) return 281;
-        else if(y==8) return 282;
-        else if(y==9) return 283;
-        else if(y==10) return 284;
-        else if(y==11) return 285;
-        else if(y==12) return 286;
-        else if(y==13) return 287;
-        else if(y==14) return 288;
-        else if(y==15) return 289;
-        else if(y==16) return 290;
-        else if(y==17) return 291;
-        else if(y==18) return 292;
-        else if(y==19) return 293;
-        else if(y==20) return 294;
-        else if(y==21) return 295;
-        else if(y==22) return 296;
-        else if(y==23) return 297;
-        else if(y==24) return 298;
-        else if(y==25) return 299;
-        else if(y==26) return 300; 
-    }
-}
-
-Point track_inverse(int n){
-     int x, y;
-
-    if(n==1){ x=1; y=1; }
-    else if(n==2){ x=1; y=2; }
-    else if(n==3){ x=1; y=2; }
-    else if(n==4){ x=1; y=4; }
-    else if(n==5){ x=1; y=5; }
-    else if(n==6){ x=1; y=6; }
-    else if(n==7){ x=1; y=7; }
-    else if(n==8){ x=1; y=8; }
-    else if(n==9){ x=1; y=9; }
-    else if(n==10){ x=1; y=10; }
-    else if(n==11){ x=1; y=11; }
-    else if(n==12){ x=1; y=12; }
-    else if(n==13){ x=1; y=15; }
-    else if(n==14){ x=1; y=16; }
-    else if(n==15){ x=1; y=17; }
-    else if(n==16){ x=1; y=18; }
-    else if(n==17){ x=1; y=19; }
-    else if(n==18){ x=1; y=20; }
-    else if(n==19){ x=1; y=21; }
-    else if(n==20){ x=1; y=22; }
-    else if(n==21){ x=1; y=23; }
-    else if(n==22){ x=1; y=24; }
-    else if(n==23){ x=1; y=25; }
-    else if(n==24){ x=1; y=26; }
-    else if(n==25){ x=2; y=1; }
-    else if(n==26){ x=2; y=6; }
-    else if(n==27){ x=2; y=12; }
-    else if(n==28){ x=2; y=15; }
-    else if(n==29){ x=2; y=21; }
-    else if(n==30){ x=2; y=26; }
-    else if(n==31){ x=3; y=1; }
-    else if(n==32){ x=3; y=6; }
-    else if(n==33){ x=3; y=12; }
-    else if(n==34){ x=3; y=15; }
-    else if(n==35){ x=3; y=21; }
-    else if(n==36){ x=3; y=26; }
-    else if(n==37){ x=4; y=1; }
-    else if(n==38){ x=4; y=6; }
-    else if(n==39){ x=4; y=12; }
-    else if(n==40){ x=4; y=15; }
-    else if(n==41){ x=4; y=21; }
-    else if(n==42){ x=4; y=26; }
-    else if(n==43){ x=5; y=1; }
-    else if(n==44){ x=5; y=2; }
-    else if(n==45){ x=5; y=3; }
-    else if(n==46){ x=5; y=4; }
-    else if(n==47){ x=5; y=5; }
-    else if(n==48){ x=5; y=6; }
-    else if(n==49){ x=5; y=7; }
-    else if(n==50){ x=5; y=8; }
-    else if(n==51){ x=5; y=9; }
-    else if(n==52){ x=5; y=10; }
-    else if(n==53){ x=5; y=11; }
-    else if(n==54){ x=5; y=12; }
-    else if(n==55){ x=5; y=13; }
-    else if(n==56){ x=5; y=14; }
-    else if(n==57){ x=5; y=15; }
-    else if(n==58){ x=5; y=16; }
-    else if(n==59){ x=5; y=17; }
-    else if(n==60){ x=5; y=18; }
-    else if(n==61){ x=5; y=19; }
-    else if(n==62){ x=5; y=20; }
-    else if(n==63){ x=5; y=21; }
-    else if(n==64){ x=5; y=22; }
-    else if(n==65){ x=5; y=23; }
-    else if(n==66){ x=5; y=24; }
-    else if(n==67){ x=5; y=25; }
-    else if(n==68){ x=5; y=26; }
-    else if(n==69){ x=6; y=2; }
-    else if(n==70){ x=6; y=6; }
-    else if(n==71){ x=6; y=9; }
-    else if(n==72){ x=6; y=18; }
-    else if(n==73){ x=6; y=21; }
-    else if(n==74){ x=6; y=26; }
-    else if(n==75){ x=7; y=2; }
-    else if(n==76){ x=7; y=6; }
-    else if(n==77){ x=7; y=9; }
-    else if(n==78){ x=7; y=18; }
-    else if(n==79){ x=7; y=21; }
-    else if(n==80){ x=7; y=26; }
-    else if(n==81){ x=8; y=1; }
-    else if(n==82){ x=8; y=2; }
-    else if(n==83){ x=8; y=3; }
-    else if(n==84){ x=8; y=4; }
-    else if(n==85){ x=8; y=5; }
-    else if(n==86){ x=8; y=6; }
-    else if(n==87){ x=8; y=9; }
-    else if(n==88){ x=8; y=10; }
-    else if(n==89){ x=8; y=11; }
-    else if(n==90){ x=8; y=12; }
-    else if(n==91){ x=8; y=15; }
-    else if(n==92){ x=8; y=16; }
-    else if(n==93){ x=8; y=17; }
-    else if(n==94){ x=8; y=18; }
-    else if(n==95){ x=8; y=21; }
-    else if(n==96){ x=8; y=22; }
-    else if(n==97){ x=8; y=23; }
-    else if(n==98){ x=8; y=24; }
-    else if(n==99){ x=8; y=25; }
-    else if(n==100){ x=8; y=26; }
-    else if(n==101){ x=9; y=6; }
-    else if(n==102){ x=9; y=12; }
-    else if(n==103){ x=9; y=15; }
-    else if(n==104){ x=9; y=21; }
-    else if(n==105){ x=10; y=6; }
-    else if(n==106){ x=10; y=12; }
-    else if(n==107){ x=10; y=15; }
-    else if(n==108){ x=10; y=21; }
-    else if(n==109){ x=11; y=6; }
-    else if(n==110){ x=11; y=9; }
-    else if(n==111){ x=11; y=10; }
-    else if(n==112){ x=11; y=11; }
-    else if(n==113){ x=11; y=12; }
-    else if(n==114){ x=11; y=13; }
-    else if(n==115){ x=11; y=14; }
-    else if(n==116){ x=11; y=15; }
-    else if(n==117){ x=11; y=16; }
-    else if(n==118){ x=11; y=17; }
-    else if(n==119){ x=11; y=18; }
-    else if(n==120){ x=11; y=21; }
-    else if(n==121){ x=12; y=6; }
-    else if(n==122){ x=12; y=9; }
-    else if(n==123){ x=12; y=18; }
-    else if(n==124){ x=12; y=21; }
-    else if(n==125){ x=13; y=6; }
-    else if(n==126){ x=13; y=9; }
-    else if(n==127){ x=13; y=18; }
-    else if(n==128){ x=13; y=21; }
-    else if(n==129){ x=14; y=0; }
-    else if(n==130){ x=14; y=1; }
-    else if(n==131){ x=14; y=2; }
-    else if(n==132){ x=14; y=3; }
-    else if(n==133){ x=14; y=4; }
-    else if(n==134){ x=14; y=5; }
-    else if(n==135){ x=14; y=6; }
-    else if(n==136){ x=14; y=7; }
-    else if(n==137){ x=14; y=8; }
-    else if(n==138){ x=14; y=9; }
-    else if(n==139){ x=14; y=18; }
-    else if(n==140){ x=14; y=19; }
-    else if(n==141){ x=14; y=20; }
-    else if(n==142){ x=14; y=21; }
-    else if(n==143){ x=14; y=22; }
-    else if(n==144){ x=14; y=23; }
-    else if(n==145){ x=14; y=24; }
-    else if(n==146){ x=14; y=25; }
-    else if(n==147){ x=14; y=26; }
-    else if(n==148){ x=14; y=27; }
-    else if(n==149){ x=15; y=6; }
-    else if(n==150){ x=15; y=9; }
-    else if(n==151){ x=15; y=18; }
-    else if(n==152){ x=15; y=21; }
-    else if(n==153){ x=16; y=6; }
-    else if(n==154){ x=16; y=9; }
-    else if(n==155){ x=16; y=18; }
-    else if(n==156){ x=16; y=21; }
-    else if(n==157){ x=17; y=6; }
-    else if(n==158){ x=17; y=9; }
-    else if(n==159){ x=17; y=10; }
-    else if(n==160){ x=17; y=11; }
-    else if(n==161){ x=17; y=12; }
-    else if(n==162){ x=17; y=13; }
-    else if(n==163){ x=17; y=14; }
-    else if(n==164){ x=17; y=15; }
-    else if(n==165){ x=17; y=16; }
-    else if(n==166){ x=17; y=17; }
-    else if(n==167){ x=17; y=18; }
-    else if(n==168){ x=17; y=21; }
-    else if(n==169){ x=18; y=6; }
-    else if(n==170){ x=18; y=9; }
-    else if(n==171){ x=18; y=18; }
-    else if(n==172){ x=18; y=21; }
-    else if(n==173){ x=19; y=6; }
-    else if(n==174){ x=19; y=9; }
-    else if(n==175){ x=19; y=18; }
-    else if(n==176){ x=19; y=21; }
-    else if(n==177){ x=20; y=1; }
-    else if(n==178){ x=20; y=2; }
-    else if(n==179){ x=20; y=3; }
-    else if(n==180){ x=20; y=4; }
-    else if(n==181){ x=20; y=5; }
-    else if(n==182){ x=20; y=6; }
-    else if(n==183){ x=20; y=7; }
-    else if(n==184){ x=20; y=8; }
-    else if(n==185){ x=20; y=9; }
-    else if(n==186){ x=20; y=11; }
-    else if(n==187){ x=20; y=11; }
-    else if(n==188){ x=20; y=12;}
-    else if(n==189){ x=20; y=15;}
-    else if(n==190){ x=20; y=16;}
-    else if(n==191){ x=20; y=17;}
-    else if(n==192){ x=20; y=18;}
-    else if(n==193){ x=20; y=19;}
-    else if(n==194){ x=20; y=20;}
-    else if(n==195){ x=20; y=21;}
-    else if(n==196){ x=20; y=22;}
-    else if(n==197){ x=20; y=23;}
-    else if(n==198){ x=20; y=24; }
-    else if(n==199){ x=20; y=25; }
-    else if(n==200){ x=20; y=26; }
-    else if(n==201){ x=21; y=1; }
-    else if(n==202){ x=21; y=6; }
-    else if(n==203){ x=21; y=12; }
-    else if(n==204){ x=21; y=15; }
-    else if(n==205){ x=21; y=21; }
-    else if(n==206){ x=21; y=26; }
-    else if(n==207){ x=22; y=1; }
-    else if(n==208){ x=22; y=6; }
-    else if(n==209){ x=22; y=12; }
-    else if(n==210){ x=22; y=15; }
-    else if(n==211){ x=22; y=21; }
-    else if(n==212){ x=22; y=26; }
-    else if(n==213){ x=23; y=1; }
-    else if(n==214){ x=23; y=2; }
-    else if(n==215){ x=23; y=3; }
-    else if(n==216){ x=23; y=6; }
-    else if(n==217){ x=23; y=7; }
-    else if(n==218){ x=23; y=8; }
-    else if(n==219){ x=23; y=9; }
-    else if(n==220){ x=23; y=10; }
-    else if(n==221){ x=23; y=11; }
-    else if(n==222){ x=23; y=12; }
-    else if(n==223){ x=23; y=13; }
-    else if(n==224){ x=23; y=14; }
-    else if(n==225){ x=23; y=15; }
-    else if(n==226){ x=23; y=16; }
-    else if(n==227){ x=23; y=17; }
-    else if(n==228){ x=23; y=18; }
-    else if(n==229){ x=23; y=19; }
-    else if(n==230){ x=23; y=20; }
-    else if(n==231){ x=23; y=21; }
-    else if(n==232){ x=23; y=24; }
-    else if(n==233){ x=23; y=25; }
-    else if(n==234){ x=23; y=26; }
-    else if(n==235){ x=24; y=3; }
-    else if(n==236){ x=24; y=6; }
-    else if(n==237){ x=24; y=9; }
-    else if(n==238){ x=24; y=18; }
-    else if(n==239){ x=24; y=21; }
-    else if(n==240){ x=24; y=24; }
-    else if(n==241){ x=25; y=3; }
-    else if(n==242){ x=25; y=6; }
-    else if(n==243){ x=25; y=9; }
-    else if(n==244){ x=25; y=18; }
-    else if(n==245){ x=25; y=21; }
-    else if(n==246){ x=25; y=24; }
-    else if(n==247){ x=26; y=1; }
-    else if(n==248){ x=26; y=2; }
-    else if(n==249){ x=26; y=3; }
-    else if(n==250){ x=26; y=4; }
-    else if(n==251){ x=26; y=5; }
-    else if(n==252){ x=26; y=6; }
-    else if(n==253){ x=26; y=9; }
-    else if(n==254){ x=26; y=10;} 
-    else if(n==255){ x=26; y=11; }
-    else if(n==256){ x=26; y=12; }
-    else if(n==257){ x=26; y=15; }
-    else if(n==258){ x=26; y=16; }
-    else if(n==259){ x=26; y=17; }
-    else if(n==260){ x=26; y=18; }
-    else if(n==261){ x=26; y=21; }
-    else if(n==262){ x=26; y=22; }
-    else if(n==263){ x=26; y=23; }
-    else if(n==264){ x=26; y=24; }
-    else if(n==265){ x=26; y=25; }
-    else if(n==266){ x=26; y=26; }
-    else if(n==267){ x=27; y=1; }
-    else if(n==268){ x=27; y=12; }
-    else if(n==269){ x=27; y=15; }
-    else if(n==270){ x=27; y=26; }
-    else if(n==271){ x=28; y=1; }
-    else if(n==272){ x=28; y=12; }
-    else if(n==273){ x=28; y=15; }
-    else if(n==274){ x=28; y=26; }
-    else if(n==275){ x=29; y=1; }
-    else if(n==276){ x=29; y=2; }
-    else if(n==277){ x=29; y=3; }
-    else if(n==278){ x=29; y=4; }
-    else if(n==279){ x=29; y=5; }
-    else if(n==280){ x=29; y=6; }
-    else if(n==281){ x=29; y=7; }
-    else if(n==282){ x=29; y=8; }
-    else if(n==283){ x=29; y=9; }
-    else if(n==284){ x=29; y=10; }
-    else if(n==285){ x=29; y=11; }
-    else if(n==286){ x=29; y=12; }
-    else if(n==287){ x=29; y=13; }
-    else if(n==288){ x=29; y=14; }
-    else if(n==289){ x=29; y=15; }
-    else if(n==290){ x=29; y=16; }
-    else if(n==291){ x=29; y=17; }
-    else if(n==292){ x=29; y=18; }
-    else if(n==293){ x=29; y=19; }
-    else if(n==294){ x=29; y=20; }
-    else if(n==295){ x=29; y=21; }
-    else if(n==296){ x=29; y=22; }
-    else if(n==297){ x=29; y=23; }
-    else if(n==298){ x=29; y=24; }
-    else if(n==299){ x=29; y=25; }
-    else if(n==300){ x=29; y=26; }
-
-    Point p;
-    p.x = x;
-    p.y = y;
-
-    return p;
-}
 
 END_OF_MAIN();
