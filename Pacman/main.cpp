@@ -447,13 +447,17 @@ int Pacman::colisionEnemigo(int b2x, int b2y, int b2w, int b2h, bool super){
     if (lifes < 1) {
         sound =  play_sample(GAME_OVER,255,0,1000,0);
         alert("GAME OVER!", NULL, NULL, "&Aceptar", NULL, 'a', 0);
-        
+        FILE *doc;
+        doc = fopen("pruebaGrafo.dot","w");
+
+        fprintf(doc,"digraph A {\n");
 
         int tam = nodos.size();
         for (int i = 0; i < tam; i++)
         {
-            printf("nodos  inicio: %d   destino: %d  tamano: %d \n", nodos[i].inicial, nodos[i].destino, nodos[i].tamano);
+            fprintf(doc,"  %d  -> %d  [label=\"%d\"]; \n", nodos[i].inicial, nodos[i].destino, nodos[i].tamano);
         }
+        fprintf(doc,"}\n");
         
 
         exit(0);
@@ -1868,9 +1872,9 @@ int main(){
         ypos = pac.getPosYPacman();
 
         f1.moveGhostMinMax(pos_xP , pos_yP );
-        f2.moveGhost();
-        f3.moveGhost();
-        f4.moveGhost();
+        //f2.moveGhost();
+        //f3.moveGhost();
+        //f4.moveGhost();
         rest(5);
 
         if(pac.colisionObjeto() == 1){
