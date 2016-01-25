@@ -35,7 +35,8 @@ int sound, score;
 clock_t tiempo;
 float tiempoSuper;
 vector <int> vectorPuntos;
-int pos_xP, pos_yP;
+
+
 
 
 struct verticePacman
@@ -44,6 +45,10 @@ struct verticePacman
     int destino;
     int tamano;
  }; 
+
+
+vector <verticePacman> nodos;
+int pos_xP, pos_yP;
 
 int mayor(int a, int b, int c);
 //dijkstra( int inicial );
@@ -262,7 +267,7 @@ class Pacman{
 
 public:
     BITMAP *PACMAN;
-        int lifes = 3;
+        int lifes = 1;
         int pos_x, pos_y;
         bool isSuper;
 
@@ -290,7 +295,7 @@ Pacman::Pacman(int x,int y){
     pos_yP = pos_y = y;
     dir = 4;
     isdead = false;
-    lifes = 3;
+    lifes = 1;
     power = false;
     points = 0;
     PACMAN_ICON = load_bitmap("pacman-l_2.bmp", NULL);
@@ -442,6 +447,15 @@ int Pacman::colisionEnemigo(int b2x, int b2y, int b2w, int b2h, bool super){
     if (lifes < 1) {
         sound =  play_sample(GAME_OVER,255,0,1000,0);
         alert("GAME OVER!", NULL, NULL, "&Aceptar", NULL, 'a', 0);
+        
+
+        int tam = nodos.size();
+        for (int i = 0; i < tam; i++)
+        {
+            printf("nodos  inicio: %d   destino: %d  tamano: %d \n", nodos[i].inicial, nodos[i].destino, nodos[i].tamano);
+        }
+        
+
         exit(0);
     }
 
@@ -1022,8 +1036,9 @@ void Fantasma::moveGhostMinMax(int pos_x, int pos_y){
     vectorPuntos.clear();
     int n;
 
-    verticePacman vp;
-
+    verticePacman vp1, vp2, vp3;
+    int next_up,next_down,next_left,next_right;
+    int t1,t2,t3;
     if (gdir == 0)
     {
         if (gpos_x % 16 == 0 && gpos_y % 16 == 0) {
@@ -1046,17 +1061,47 @@ void Fantasma::moveGhostMinMax(int pos_x, int pos_y){
 
             n = mayor(tamGraphNext_up, tamGraphNext_down, tamGraphNext_left);
 
+            next_up =track_pos(((gpos_y-16)/16), ((gpos_x)/16));
+            next_down =track_pos(((gpos_y+16)/16), ((gpos_x)/16));
+            next_left =track_pos(((gpos_y)/16), ((gpos_x-16)/16));
+
+            vp1.inicial =coord_Ghost_Now ;
+            vp1.destino = next_up;
+            
+            vp2.inicial =coord_Ghost_Now ;
+            vp2.destino = next_down;
+            
+            vp3.inicial =coord_Ghost_Now ;
+            vp3.destino = next_left;
+            
             if (n == tamGraphNext_up)
             {
                 gpos_y -=2;         // Avanzamos Hacia la arriba
                 gdir = 2;           // Direccion derecha
+                t1 = 1;
+                t2 = -1;
+                t3 = -1;
+
             }else if (n == tamGraphNext_down){
                 gpos_y +=2;         // Avanzamos Hacia la abajo
                 gdir = 3;
+                t1 = -1;
+                t2 = 1;
+                t3 = -1;
             }else if (n == tamGraphNext_left){
                 gpos_x -=2;         // Avanzamos Hacia la derecha
                 gdir = 0;
+                t1 = -1;
+                t2 = -1;
+                t3 = 1;
             }
+            vp1.tamano = t1;
+            vp2.tamano = t2;
+            vp3.tamano = t3;
+
+            nodos.push_back(vp1);
+            nodos.push_back(vp2);
+            nodos.push_back(vp3);
 
         }else gpos_x -=2; 
     }else if (gdir == 1)
@@ -1082,17 +1127,48 @@ void Fantasma::moveGhostMinMax(int pos_x, int pos_y){
 
             n = mayor(tamGraphNext_up, tamGraphNext_down, tamGraphNext_right);
 
+
+            next_up =track_pos(((gpos_y-16)/16), ((gpos_x)/16));
+            next_down =track_pos(((gpos_y+16)/16), ((gpos_x)/16));
+            next_right=track_pos(((gpos_y)/16), ((gpos_x+16)/16));
+
+            vp1.inicial =coord_Ghost_Now ;
+            vp1.destino = next_up;
+            
+            vp2.inicial =coord_Ghost_Now ;
+            vp2.destino = next_down;
+            
+            vp3.inicial =coord_Ghost_Now ;
+            vp3.destino = next_right;
+
+
             if (n == tamGraphNext_up)
             {
                 gpos_y -=2;         // Avanzamos Hacia la arriba
                 gdir = 2;           // Direccion derecha
+                t1 = 1;
+                t2 = -1;
+                t3 = -1;
             }else if (n == tamGraphNext_down){
                 gpos_y +=2;         // Avanzamos Hacia la abajo
                 gdir = 3;
+                 t1 = -1;
+                t2 = 1;
+                t3 = -1;
             }else if (n == tamGraphNext_right){
                 gpos_x +=2;         // Avanzamos Hacia la derecha
                 gdir = 1;
+                t1 = -1;
+                t2 = -1;
+                t3 = 1;
             }
+            vp1.tamano = t1;
+            vp2.tamano = t2;
+            vp3.tamano = t3;
+
+            nodos.push_back(vp1);
+            nodos.push_back(vp2);
+            nodos.push_back(vp3);
 
         }else gpos_x +=2; 
     }else if (gdir == 2)
@@ -1116,19 +1192,48 @@ void Fantasma::moveGhostMinMax(int pos_x, int pos_y){
             tamGraphNext_right = vectorPuntos.size();
             vectorPuntos.clear();
 
+            next_up =track_pos(((gpos_y-16)/16), ((gpos_x)/16));
+            next_right =track_pos(((gpos_y)/16), ((gpos_x+16)/16));
+            next_left =track_pos(((gpos_y)/16), ((gpos_x-16)/16));
+
+            vp1.inicial =coord_Ghost_Now ;
+            vp1.destino = next_up;
+            
+            vp2.inicial =coord_Ghost_Now ;
+            vp2.destino = next_right;
+            
+            vp3.inicial =coord_Ghost_Now ;
+            vp3.destino = next_left;
+
             n = mayor(tamGraphNext_up, tamGraphNext_left, tamGraphNext_right);
 
             if (n == tamGraphNext_up)
             {
                 gpos_y -=2;         // Avanzamos Hacia la arriba
                 gdir = 2;           // Direccion derecha
+                t1 = 1;
+                t2 = -1;
+                t3 = -1;
             }else if (n == tamGraphNext_left){
                 gpos_x -=2;         // Avanzamos Hacia la izquierda
                 gdir = 0;
+                t1 = -1;
+                t2 = 1;
+                t3 = -1;
             }else if (n == tamGraphNext_right){
                 gpos_x +=2;         // Avanzamos Hacia la derecha
                 gdir = 1;
+                t1 = -1;
+                t2 = -1;
+                t3 = 1;
             }
+            vp1.tamano = t1;
+            vp2.tamano = t2;
+            vp3.tamano = t3;
+
+            nodos.push_back(vp1);
+            nodos.push_back(vp2);
+            nodos.push_back(vp3);
 
         }else gpos_y -=2; 
     }else if (gdir == 3)
@@ -1152,19 +1257,48 @@ void Fantasma::moveGhostMinMax(int pos_x, int pos_y){
             tamGraphNext_right = vectorPuntos.size();
             vectorPuntos.clear();
 
+            next_down=track_pos(((gpos_y+16)/16), ((gpos_x)/16));
+            next_right =track_pos(((gpos_y)/16), ((gpos_x+16)/16));
+            next_left =track_pos(((gpos_y)/16), ((gpos_x-16)/16));
+
+            vp1.inicial =coord_Ghost_Now ;
+            vp1.destino = next_down;
+            
+            vp2.inicial =coord_Ghost_Now ;
+            vp2.destino = next_right;
+            
+            vp3.inicial =coord_Ghost_Now ;
+            vp3.destino = next_left;
+
             n = mayor(tamGraphNext_down, tamGraphNext_left, tamGraphNext_right);
 
             if (n == tamGraphNext_down)
             {
                 gpos_y +=2;         // Avanzamos Hacia la arriba
                 gdir = 3;           // Direccion derecha
+                t1 = 1;
+                t2 = -1;
+                t3 = -1;
             }else if (n == tamGraphNext_left){
                 gpos_x -=2;         // Avanzamos Hacia la izquierda
                 gdir = 0;
+                t1 = -1;
+                t2 = 1;
+                t3 = -1;
             }else if (n == tamGraphNext_right){
                 gpos_x +=2;         // Avanzamos Hacia la derecha
                 gdir = 1;
+                t1 = -1;
+                t2 = -1;
+                t3 = 1;
             }
+            vp1.tamano = t1;
+            vp2.tamano = t2;
+            vp3.tamano = t3;
+
+            nodos.push_back(vp1);
+            nodos.push_back(vp2);
+            nodos.push_back(vp3);
 
         }else gpos_y +=2; 
     }
@@ -1720,7 +1854,7 @@ int main(){
             rest(100);
             }
 
-        if((float)tiempo/CLOCKS_PER_SEC >= 20){
+        if((float)tiempo/CLOCKS_PER_SEC >= 30){
             alert("TIEMPO AGOTADO!", NULL, NULL, "&Salir", NULL, 's', 0);
             exit(0);
         }
@@ -1733,9 +1867,9 @@ int main(){
         xpos = pac.getPosXPacman();
         ypos = pac.getPosYPacman();
 
-        f2.moveGhostMinMax(pos_xP , pos_yP );
-        f1.moveGhost();
-        //f3.moveGhost_mirror();
+        f1.moveGhostMinMax(pos_xP , pos_yP );
+        f2.moveGhost();
+        f3.moveGhost();
         f4.moveGhost();
         rest(5);
 
